@@ -101,10 +101,10 @@ Connect **both** sensors to the Arduino with female–male jumper cables (no bre
 
 | Sensor | Vcc | Trig | Echo | GND |
 |---|---|---|---|---|
-| **Left** | 5V | D7 | D6 | GND |
-| **Right** | IOREF | D5 | D4 | GND |
+| **Right** | 5V | D7 | D6 | GND |
+| **Left** | IOREF | D5 | D4 | GND |
 
-> ⚠️ **Important:** Do **not** connect anything to pins 3, 8, 9, 11, 12, or 13 — these are used by the Motor Shield to control the motors. The IOREF pin is connected to the Arduino's 5 V supply, so it can power the second sensor without a breadboard.
+> **Important:** Do **not** connect anything to pins 3, 8, 9, 11, 12, or 13 — these are used by the Motor Shield to control the motors. The IOREF pin is connected to the Arduino's 5 V supply, so it can power the second sensor without a breadboard.
 
 Create a new sketch with the following code and upload it:
 
