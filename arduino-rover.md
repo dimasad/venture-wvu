@@ -1,3 +1,7 @@
+---
+title: Building an Obstacle-Avoiding Rover
+---
+
 # Building an Obstacle-Avoiding Rover: Closing the Sense–Think–Act Loop
 
 ## 1. Overview and Objective
@@ -161,10 +165,7 @@ Do not move on if you cannot see live distance readings from both sensors.
 
 A DC motor spins one way when a positive voltage is applied to its terminals, and the other way when the voltage is reversed. Before wiring the motors to the shield, you need to find out **which polarity makes each wheel drive the rover forward**.
 
-There are two types of motors on the rovers:
-
-- **Yellow motors** — two wires (red and black). Both are the motor's armature terminals.
-- **Blue motors** — six wires. Only the **blue** and **green** wires are the armature terminals; the other four belong to a built-in encoder that we won't use today. **Leave the encoder wires disconnected.**
+The rovers we use have six wires, 4 for a wheel encoder sensor and 2 for powering the motor. In today's activity, we will use only the green and blue wires, which are used for driving the motor. Please leave the encoder wires disconnected.
 
 Procedure:
 
@@ -202,7 +203,7 @@ The logic is simple:
 The motors connect to the blue **screw terminal block** on the shield (marked A+, A−, B+, B−).
 
 1. Connect the **left motor** to terminals **A+** and **A−**: loosen the screw, insert the motor cable, and tighten. Using your polarity notes, note which wire went to `+` and which to `−`.
-   > ⚠️ Do not unscrew the terminals all the way — dropped screws are nearly impossible to find on the carpet. If a screw is missing, ask the instructor rather than borrowing one from another shield.
+   > Please do not unscrew the terminals all the way — dropped screws are nearly impossible to find on the carpet. If a screw is missing, ask the instructor rather than borrowing one from another shield.
 2. Connect the **right motor** to terminals **B+** and **B−**, again noting the wire colors. The polarity you choose does not matter, as long as you know which DIR setting will drive the rover forward.
 3. Connect the **battery** to the Arduino's DC jack using the battery snap connector. The battery must be connected for the motors to spin properly. Tip: to save power and reduce electrical noise, disconnect the battery while writing code and reconnect it for testing.
 
