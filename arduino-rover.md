@@ -169,9 +169,9 @@ The rovers we use have six wires, 4 for a wheel encoder sensor and 2 for powerin
 
 Procedure:
 
-1. **Remove the wheels** from the rover so it doesn't drive off the table during testing.
-2. For each motor, one at a time, touch the motor's armature terminals (blue and green for the blue motors; red and black for the yellow motors) directly to the battery terminals.
-3. Observe which direction the shaft spins, and **write down** which wire on the positive battery terminal makes each wheel spin in the "rover forward" direction. Keep in mind that the left and right motors are mirrored, so "forward" corresponds to opposite shaft rotations on each side.
+1. Remove the wheels from the rover so it doesn't drive off the table during testing.
+2. For each motor, one at a time, touch the motor's armature terminals (blue and green) directly to the battery terminals.
+3. Observe which direction the shaft spins, and write down which wire on the positive battery terminal makes each wheel spin in the "rover forward" direction. Keep in mind that the left and right motors are mirrored, so "forward" corresponds to opposite shaft rotations on each side.
 
 You will use these notes both for wiring the shield and for setting the direction pins in your code.
 
@@ -181,30 +181,30 @@ You will use these notes both for wiring the shield and for setting the directio
 
 ### 5.1 How the Motor Shield works
 
-The Arduino's digital pins can only supply about 20 mA — far too little for a motor, which draws up to 2 A. The **Arduino Motor Shield** solves this. It is a **dual H-bridge**: an arrangement of electronic switches that lets a small logic signal control a large current *and* reverse its polarity. The shield has two independent channels (A and B), one per motor, powered by the battery connected to the Arduino's DC jack (barrel plug).
+The Arduino's digital pins can only supply about 20 mA — far too little for a motor. The **Arduino Motor Shield** solves this. It is a **dual H-bridge**: an arrangement of electronic switches that lets a small logic signal control a large current *and* reverse its polarity. The shield has two independent channels (A and B), one per motor, powered by the battery connected to the Arduino's DC jack (barrel plug).
 
 Each channel is controlled by pins on the Arduino:
 
 | Function | Channel A (left motor) | Channel B (right motor) |
 |---|---|---|
 | Direction (DIR) | 12 | 13 |
-| PWM (enable/speed) | 3 | 11 |
+| Enable (on/off) | 3 | 11 |
 | Brake | 9 | 8 |
 | Current sensing | A0 | A1 |
 
 The logic is simple:
 
-- The **PWM** pin enables or disables the channel. When it is LOW, the motor is disconnected (all switches in the bridge open). When it is HIGH, the motor terminals are connected across the battery voltage. By switching this pin rapidly with `analogWrite` (**pulse-width modulation**), you control the *average* voltage — and therefore the motor speed — anywhere between 0 (`analogWrite(pin, 0)`) and full power (`analogWrite(pin, 255)`).
+- The **Enable** pin turns the channel on or off. When it is LOW, the motor is disconnected (all switches in the bridge open). When it is HIGH, the motor terminals are connected directly across the battery voltage and the motor runs at full power. Today we will only drive the motors fully on or fully off with `digitalWrite`, not at partial speed.
 - The **DIR** pin selects polarity: positive voltage on the `+` terminal when HIGH, negative when LOW. This is what makes the motor spin forward or backward.
-- When both **Brake** and **PWM** are HIGH, both motor terminals are shorted together, actively braking the motor. We won't need the brake today.
+- When both **Brake** and **Enable** are HIGH, both motor terminals are shorted together, actively braking the motor. We won't need the brake today.
 
 ### 5.2 Wiring the motors
 
 The motors connect to the blue **screw terminal block** on the shield (marked A+, A−, B+, B−).
 
-1. Connect the **left motor** to terminals **A+** and **A−**: loosen the screw, insert the motor cable, and tighten. Using your polarity notes, note which wire went to `+` and which to `−`.
-   > Please do not unscrew the terminals all the way — dropped screws are nearly impossible to find on the carpet. If a screw is missing, ask the instructor rather than borrowing one from another shield.
-2. Connect the **right motor** to terminals **B+** and **B−**, again noting the wire colors. The polarity you choose does not matter, as long as you know which DIR setting will drive the rover forward.
+1. Connect the **left motor** to terminals **A+** and **A−**: loosen the screw, insert the motor cable, and tighten. Connect the wires in the same polarity that, connected to the battery, makes the motor drive forward.
+   > Please do not unscrew the terminals all the way. Screws dropped on the carpet are nearly impossible to find. If a screw is missing, ask the instructor rather than borrowing one from another shield.
+2. Connect the **right motor** to terminals **B+** and **B−**, again noting the polarity that makes it drive forward.
 3. Connect the **battery** to the Arduino's DC jack using the battery snap connector. The battery must be connected for the motors to spin properly. Tip: to save power and reduce electrical noise, disconnect the battery while writing code and reconnect it for testing.
 
 ### 5.3 Quick motor test
@@ -216,8 +216,8 @@ void setup() {
   // Motor shield control pins
   pinMode(12, OUTPUT);  // DIRA (left motor direction)
   pinMode(13, OUTPUT);  // DIRB (right motor direction)
-  pinMode(3, OUTPUT);   // PWMA (left motor power)
-  pinMode(11, OUTPUT);  // PWMB (right motor power)
+  pinMode(3, OUTPUT);   // ENA (left motor enable)
+  pinMode(11, OUTPUT);  // ENB (right motor enable)
 }
 
 void loop() {
@@ -225,132 +225,38 @@ void loop() {
   digitalWrite(12, HIGH);  // Left motor forward
   digitalWrite(13, HIGH);  // Right motor forward
 
-  analogWrite(3, 200);   // Left motor on (duty cycle 200/255)
-  analogWrite(11, 200);  // Right motor on
+  digitalWrite(3, HIGH);   // Left motor on
+  digitalWrite(11, HIGH);  // Right motor on
 }
 ```
 
-If a shaft spins the wrong way, either flip its DIR value in the code or swap the motor's wires on the screw terminal — pick one convention and stick with it.
-
-✅ **Checkpoint:** Both motor shafts spin "forward" simultaneously.
+If a shaft spins the wrong way, either flip its DIR value in the code or swap the motor's wires on the screw terminal — pick one convention and stick with it. Make sure you can make both motors spin forward before moving on.
 
 ---
 
 ## 6. Closing the Loop
 
-Now everything comes together: the sensors *sense*, your code *thinks*, and the motors *act*. Write a program that makes the rover explore the room while avoiding obstacles.
+Now everything comes together: the sensors *sense*, your code *thinks*, and the motors *act*. Write a program that makes the rover explore the room while avoiding obstacles. A simple and effective strategy is:
 
-A simple and effective strategy:
+- If there is an obstacle close to the **right** sensor and none close to the left, then **turn left**.
+- If there is an obstacle close to the **left** sensor and none close to the right, then **turn right**.
+- If there are obstacles close to **both** sensors, then **back up**.
+- If there are **no** obstacles close to either sensor, then **go forward**.
 
-- If there is an obstacle close to the **right** sensor and none close to the left → **turn left**.
-- If there is an obstacle close to the **left** sensor and none close to the right → **turn right**.
-- If there are obstacles close to **both** sensors → **back up**.
-- If there are **no** obstacles close to either sensor → **go forward**.
-
-You choose what "close" means (a threshold in centimeters, e.g. 20–30 cm) — experiment! You can also modulate the motor voltage with `analogWrite`; this is especially useful on the faster yellow-motor rovers.
-
-Here is a skeleton to build from. The helper functions keep the main logic readable — fill in the direction settings from your Section 5 notes:
-
-```cpp
-#include <Ultrasonic.h>
-
-// --- Pin assignments ---
-int LEFT_TRIGGER_PIN  = 7;
-int LEFT_ECHO_PIN     = 6;
-int RIGHT_TRIGGER_PIN = 5;
-int RIGHT_ECHO_PIN    = 4;
-
-int DIRA = 12;  // Left motor direction
-int DIRB = 13;  // Right motor direction
-int PWMA = 3;   // Left motor power
-int PWMB = 11;  // Right motor power
-
-// --- Tuning parameters ---
-int CLOSE = 25;    // Obstacle threshold in cm -- experiment!
-int SPEED = 180;   // Motor duty cycle, 0-255
-
-Ultrasonic uleft(LEFT_TRIGGER_PIN, LEFT_ECHO_PIN);
-Ultrasonic uright(RIGHT_TRIGGER_PIN, RIGHT_ECHO_PIN);
-
-// --- Motion helper functions ---
-// Adjust the HIGH/LOW values to match YOUR rover's wiring!
-
-void forward() {
-  digitalWrite(DIRA, HIGH);
-  digitalWrite(DIRB, HIGH);
-  analogWrite(PWMA, SPEED);
-  analogWrite(PWMB, SPEED);
-}
-
-void backward() {
-  digitalWrite(DIRA, LOW);
-  digitalWrite(DIRB, LOW);
-  analogWrite(PWMA, SPEED);
-  analogWrite(PWMB, SPEED);
-}
-
-void turnLeft() {
-  // Right wheel forward, left wheel backward (turn in place)
-  digitalWrite(DIRA, LOW);
-  digitalWrite(DIRB, HIGH);
-  analogWrite(PWMA, SPEED);
-  analogWrite(PWMB, SPEED);
-}
-
-void turnRight() {
-  // Left wheel forward, right wheel backward (turn in place)
-  digitalWrite(DIRA, HIGH);
-  digitalWrite(DIRB, LOW);
-  analogWrite(PWMA, SPEED);
-  analogWrite(PWMB, SPEED);
-}
-
-void setup() {
-  pinMode(DIRA, OUTPUT);
-  pinMode(DIRB, OUTPUT);
-  pinMode(PWMA, OUTPUT);
-  pinMode(PWMB, OUTPUT);
-  Serial.begin(9600);  // For debugging
-}
-
-void loop() {
-  // SENSE: read both distances
-  int left_dist  = uleft.read();
-  int right_dist = uright.read();
-
-  // THINK + ACT: decide and move
-  if (left_dist < CLOSE && right_dist < CLOSE) {
-    backward();
-  } else if (left_dist < CLOSE) {
-    turnRight();
-  } else if (right_dist < CLOSE) {
-    turnLeft();
-  } else {
-    forward();
-  }
-
-  delay(50);  // Small pause between sense-think-act cycles
-}
-```
+To turn right in place, spin the left motor forward and the right motor backward.
+The oposite motor directions will make the rover turn in place to the left.
+You choose what "close" means (a threshold in centimeters, e.g. 10–20 cm). Experiment with different values and see how the rover behaves.
 
 ### Testing procedure
 
 1. **Test with the wheels off first**, with the rover connected to the computer. Wave your hands in front of the sensors and watch the shafts respond. Use the Serial Monitor to print distances if the behavior is confusing.
-2. When everything responds correctly, **disconnect the USB cable, attach the wheels, connect the battery**, and set the rover loose in a free area of the room.
-3. Observe, tune, repeat: adjust `CLOSE`, `SPEED`, and the loop delay until the rover explores smoothly. If a wheel doesn't turn at low duty cycles, the motor may not have enough torque to overcome friction — increase the duty cycle or give it a small push.
+2. When everything responds correctly, **disconnect the USB cable, attach the wheels, make sure the battery is connected**, and set the rover loose in a free area of the room.
+3. Observe, tune, repeat: adjust `CLOSE` and the loop delay until the rover explores smoothly.
 
-> 💡 **Pin 13 caution:** Pin 13 drives both the built-in LED *and* the channel B direction. Don't use the LED in your code, as it will interfere with the right motor.
+> **Pin 13 caution:** Pin 13 drives both the built-in LED *and* the channel B direction. Don't use the LED in your code, as it will interfere with the right motor.
 
 ### Ideas if you finish early
 
 - Make the rover back up *and then turn* when both sensors see an obstacle, so it doesn't get stuck oscillating in corners.
 - Slow down gradually as obstacles get closer, instead of using a single threshold.
 - Print the rover's "decisions" (`FORWARD`, `TURN LEFT`, …) to the Serial Monitor while tethered, to debug the logic.
-
-### Cleanup
-
-When you finish, unplug everything from the motor shield screw terminals and the header pins, disconnect the battery, and leave just the motor shield stacked on the Arduino Uno.
-
----
-
-*Congratulations — you have closed the sense–think–act loop!*
