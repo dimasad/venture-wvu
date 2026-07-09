@@ -111,7 +111,7 @@ Today's activity is designed to make the second kind of error visible, since the
 
 ## 5. Verify the Setup with cfclient
 
-1. Look at the label on the underside of the Crazyflie's frame for the last hexadecimal digit `x` of its radio address. You will need it both for the client and for your own scripts, as part of a URI `radio://0/80/2M/E7E7E7E7Ex`.
+1. Look at the label on the underside of the Crazyflie's frame for the last two hexadecimal digits `xx` of its radio address. You will need it both for the client and for your own scripts, as part of a URI `radio://0/80/2M/E7E7E7E7Exx`. If the label underneath the crazyflie says `A0`, for example, then the address of the drone is `E7E7E7E7EA0` and its URI is `radio://0/80/2M/E7E7E7E7EA0`.
 2. Plug in the CrazyRadio PA dongle, launch **cfclient**, and click **Scan**.
 3. Select your Crazyflie's address from the dropdown next to the **Connect** button and click **Connect**.
 4. Open the **Flight Control** tab and enable **Hover** (assisted) mode, which requires the Flow deck and holds the drone's height and horizontal position automatically. Use the **Take Off**, **Land**, and directional move buttons in the GUI to fly the drone by hand for a few seconds, staying inside the designated flight area.
