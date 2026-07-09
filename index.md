@@ -9,3 +9,4 @@ Hands-on tutorials and presentations for Venture into WVU: Space Robotics.
 ## Tutorials
 
 - [Building an Obstacle-Avoiding Rover](arduino-rover): Build a complete sense–think–act loop on an Arduino-based rover with ultrasonic sensors and DC motors.
+- [Position Control and Odometry Drift with the Crazyflie](crazyflie-odometry): Fly a Crazyflie with a Flow deck to explore position control error and odometry drift.
