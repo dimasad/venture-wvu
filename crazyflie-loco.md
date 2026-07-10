@@ -181,7 +181,7 @@ def prepare_drone(scf):
     time.sleep(0.1)
     scf.cf.param.set_value("kalman.resetEstimation", "0")
     wait_until_position_is_ready(scf)
-    configure_position_log()
+    configure_position_log(scf)
     time.sleep(0.2)
     print("Waiting to get the current position")
     while position is None:
@@ -246,28 +246,25 @@ The drone connects, settles its position, takes off to 1 m, flies a 0.5 m square
 
 Read this so you can change the mission with confidence.
 
-**The imports** bring in the tools: `cflib.crtp` (radio drivers), `SyncCrazyflie` (the connection), `LogConfig`/`SyncLogger` (reading data back from the drone), and `MotionCommander` (simple movement commands).
+**The imports** bring in the tools: `cflib.crtp` (radio drivers), `SyncCrazyflie` (the connection), `LogConfig`/`SyncLogger` (reading data back from the drone), and `PositionHlCommander` (flies the drone to absolute `(x, y, z)` points instead of relative distances).
 
 **`URI`** is the drone's radio address, which drone to talk to.
 
-**The settings** (`TAKEOFF_HEIGHT`, `SQUARE_SIDE`, `SPEED`) are plain numbers you can change. Everything about the shape and speed of the flight is controlled here and in the movement lines.
+**The settings** (`TAKEOFF_HEIGHT`, `SQUARE_SIDE`, `SPEED`) are plain numbers you can change. `SQUARE_SIDE` is added to the drone's own starting position to get the far corners of the square, so the shape is always drawn around wherever the drone happens to be placed.
 
 **`wait_until_position_is_ready`** reads three "variance" values from the drone, roughly, how *unsure* the drone is about its x, y, z position. It keeps the last 10 readings and waits until they stop changing much (the estimate has "settled"). This prevents taking off while the drone is still figuring out where it is.
 
-**`prepare_drone`** resets the position estimate (tells the Kalman filter to start fresh), then calls the wait function above. Always done right before flying.
+**`position_callback`** runs automatically every time the drone sends a new position reading. It reads `kalman.stateX/Y/Z`, the Kalman filter's current best estimate of the drone's `(x, y, z)`, stores it in the global `position` variable, and prints it, so you can watch the drone's estimated position update live on the terminal.
 
-**`fly_the_square`** is the mission. The line `with MotionCommander(scf, default_height=TAKEOFF_HEIGHT) as drone:` is where the drone **takes off** to the given height. Inside the block, each command moves the drone a set distance:
+**`configure_position_log`** sets up the log that drives `position_callback`: it tells the drone which three variables to stream (`kalman.stateX/Y/Z`, every 100 ms) and registers `position_callback` to run each time a new reading arrives.
 
-- `drone.forward(d)` / `drone.back(d)` — move along +X / −X by `d` meters
-- `drone.left(d)` / `drone.right(d)` — move along +Y / −Y
-- `drone.up(d)` / `drone.down(d)` — change height
-- `drone.turn_left(deg)` / `drone.turn_right(deg)` — rotate in place
+**`prepare_drone`** resets the position estimate (tells the Kalman filter to start fresh), waits for it to settle, then starts the position log and waits until `position` actually holds a reading before returning. This guarantees the mission below has a real, current `(x0, y0, z0)` to build its flight path from, instead of assuming the drone starts at the origin.
 
-Each takes an optional `velocity=` in m/s. When the `with` block ends, the drone **lands automatically**. So four moves,  forward, left, back, right, trace a square and return to start.
+**`fly_the_square`** is the mission. It reads the drone's current position (`x0, y0, z0`, filled in by the log above) and computes `x1 = x0 + SQUARE_SIDE`, `y1 = y0 + SQUARE_SIDE`, the far corners of the square. The line `with PositionHlCommander(scf, default_height=TAKEOFF_HEIGHT) as pc:` is where the drone **takes off** to the given height. Inside the block, each `pc.go_to(x=..., y=..., velocity=...)` call is an **absolute** target, "fly to this exact `(x, y)` point in the room", not "move this far from where you are." The drone uses its own live LPS position to correct itself en route, so it still lands on each corner accurately even if it drifted slightly on the way there. The four calls visit the corners `(x0,y0) → (x1,y0) → (x1,y1) → (x0,y1) → (x0,y0)` in order, tracing a square and returning to the start. When the `with` block ends, the drone **lands automatically**.
 
 **The `__main__` block** is where the program starts: it initializes the radio, connects, prepares the drone, and runs the mission.
 
-**The mental model:** your laptop sends the drone target moves; the drone uses its live LPS position to carry them out. You describe *what* path to fly; the drone handles *how* to fly it.
+**The mental model:** the drone continuously reports its own live position; your laptop reads that once to know where "home" is, then sends absolute target coordinates in that same room frame. The drone handles getting from one target to the next itself, correcting for drift along the way, so you describe *where* it should be, not *how far* it should move.
 
 ---
 
@@ -275,22 +272,22 @@ Each takes an optional `velocity=` in m/s. When the `with` block ends, the drone
 
 Now make the drone do something other than a square. Pick one (or invent your own):
 
-**Task A — Triangle.** Make the drone fly a triangle and return to start. Hint: a triangle needs turns that aren't 90°. Combine moves with `drone.turn_left(deg)` between straight segments, or use forward/left/right moves of different lengths.
+**Task A — Triangle.** Make the drone fly a triangle and return to start. Hint: pick three `(x, y)` points around `(x0, y0)` and visit them in order, each with its own `pc.go_to(x=..., y=..., velocity=SPEED)`.
 
-**Task B — Rectangle at two heights.** Fly a rectangle (e.g. 0.8 m × 0.4 m), then use `drone.up(0.5)` and fly the same rectangle again higher, then land.
+**Task B — Rectangle at two heights.** Fly a rectangle (e.g. 0.8 m × 0.4 m) with a sequence of `go_to` corners, then call `pc.go_to(x=x0, y=y0, z=z0 + 0.5, velocity=SPEED)` to rise, and fly the same rectangle again higher before landing.
 
-**Task C — Letter or initials.** Trace the first letter of your name in the air using a sequence of `forward` / `back` / `left` / `right` / `up` / `down` moves.
+**Task C — Letter or initials.** Trace the first letter of your name in the air as a sequence of absolute `(x, y)` waypoints passed to `pc.go_to`, each one a stroke of the letter.
 
 **Rules to keep it safe and working:**
 
-- Keep every move **inside the anchor box,** don't let the path leave the volume
+- Keep every waypoint **inside the anchor box,** don't let the path leave the volume
 the anchors form, or the position estimate degrades.
 - Keep `SPEED` at 0.3 m/s or lower while learning.
 - Keep heights modest (0.5–1.0 m).
 - Change **only the movement lines** inside `fly_the_square` (you can rename it). Do not add estimator/tuning parameters, the default settings are what fly reliably.
 - Test with the area clear and a hand on `Ctrl + C`.
 
-**Stretch goal:** instead of relative moves (`forward`, `left`, …), learn the high-level commander's *go-to* command to fly to exact `(x, y, z)` points in the room, and visit a list of waypoints you define.
+**Stretch goal:** instead of writing out each `go_to` call by hand, define your waypoints as a list of `(x, y, z)` tuples and loop over them, calling `pc.go_to(x=x, y=y, z=z, velocity=SPEED)` for each one in turn.
 
 ---
 
