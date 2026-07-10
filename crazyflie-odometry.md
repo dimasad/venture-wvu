@@ -140,7 +140,7 @@ This script arms the Crazyflie, takes off, and then repeatedly calls `cf.command
 
 ### 6.3 HighLevelCommander: planned trajectories with go_to
 
-Create a new script, `autonomous_sequence_go_to.py`, that flies the same square pattern as `autonomous_sequence.py`, but replaces the manual position-setpoint loop with a series of `go_to` calls, and lands with `land()` instead of a final `go_to(x=0, y=0, z=0, yaw=0, duration_s=1)`. Use keyword arguments so the waypoints stay easy to read:
+The script below flies the same square pattern as `autonomous_sequence.py`, but replaces the manual position-setpoint loop with a series of `go_to` calls, and lands with `land()`. Keyword arguments are used to make the waypoints easier to read:
 
 ```python
 import time
