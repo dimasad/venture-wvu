@@ -119,6 +119,8 @@ TAKEOFF_HEIGHT = 0.6  # hover height, meters
 SQUARE_SIDE = 1.0  # side length of the square, meters
 SPEED = 0.5  # movement speed, meters/second
 
+# Global variable to store the drone's (x,y,z) position
+position = None
 
 def wait_until_position_is_ready(scf):
     """
