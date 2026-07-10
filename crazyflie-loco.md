@@ -38,20 +38,22 @@ The Loco system has two working modes. **This tutorial uses TDoA2**, the mode bu
 
 One key rule for TDoA2: the drone should fly **inside the box formed by the anchors** (the "convex hull"). Accuracy drops quickly outside it, which is why 8 anchors in a box shape matter.
 
-## 3. System layout (reference)
+## 3. System layout
+
+The **X and Y axes are marked on the ground with masking tape**, starting at anchor 0, use that tape as the physical reference for the coordinate frame described below.
 
 The 8 anchors are **already installed** in the room, you don't place or measure them. But you should understand the layout, because the drone flies inside the box they form, and the flight positions in the code are relative to this same coordinate frame.
 
-The anchors sit at the **8 corners of the room-sized box**. Anchor **0** marks the origin `(0, 0, 0)` in one bottom corner; from there **X** runs along the short 3.2 m side, **Y** along the long 4.9 m side, and **Z** points up to 1.60 m. Anchors **0, 2, 5, 7** are near the floor and **1, 3, 4, 6** are up high, one at each corner.
+The anchors sit at the **8 corners of the room-sized box**. Anchor **0** marks the origin `(0, 0, 0)` on the ground below it; from there **X** runs along the short 3.20 m side, **Y** along the long 4.90 m side, and **Z** points up to 1.60 m. Anchors **0, 2, 5, 7** are mounted low, near the floor, and **1, 3, 4, 6** are mounted high, one at each corner.
 
-The room is a box of 4.20 m (X) × 3.20 m (Y) × 1.60 m (Z)** with the origin at anchor 0.
+The room is a box of **3.20 m (X) × 4.90 m (Y) × 1.60 m (Z)** with the origin at anchor 0.
 
-> **The exact stored coordinates are already in the system.** To see the real `(x, y, z)` for each anchor ID on your setup, open the Loco Positioning tab (Step 4.2) and click **Configure positions,**  every anchor's position is listed there. **You do not need to change them.** Use Configure positions to read the exact values if you want them for your flight code.
+> **The exact stored coordinates are already in the system**, matching the [anchor configuration file](assets/config/loco_config.yaml). To see the real `(x, y, z)` for each anchor ID on your setup, open the Loco Positioning tab (Step 4.2) and click **Configure positions,**  every anchor's position is listed there. **You do not need to change them.** Use Configure positions to read the exact values if you want them for your flight code.
 
 
 Key things to take from this:
 
-- The **origin (0,0,0) is at anchor 0**; **+X** runs along the 4.90 m side, **+Y** along the 3.20 m side, **+Z** is up to 1.60 m.
+- The **origin (0,0,0) is at anchor 0** (marked on the ground with masking tape); **+X** runs along the 3.20 m side, **+Y** along the 4.90 m side, **+Z** is up to 1.60 m.
 - The usable flight volume is **inside** this box. Keep every flight path within it, accuracy drops off outside the anchor box.
 - When you start the drone, you place it flat inside this volume pointing along **+X** (along the 3.20 m side).
 
