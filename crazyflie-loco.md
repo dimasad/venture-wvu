@@ -40,20 +40,17 @@ One key rule for TDoA2: the drone should fly **inside the box formed by the anch
 
 ## 3. System layout
 
-The **X and Y axes are marked on the ground with masking tape**, starting at anchor 0, use that tape as the physical reference for the coordinate frame described below.
-
 The 8 anchors are **already installed** in the room, you don't place or measure them. But you should understand the layout, because the drone flies inside the box they form, and the flight positions in the code are relative to this same coordinate frame.
+The anchors sit at the 8 corners of the flight area box.
 
-The anchors sit at the **8 corners of the room-sized box**. Anchor **0** marks the origin `(0, 0, 0)` on the ground below it; from there **X** runs along the short 3.20 m side, **Y** along the long 4.90 m side, and **Z** points up to 1.60 m. Anchors **0, 2, 5, 7** are mounted low, near the floor, and **1, 3, 4, 6** are mounted high, one at each corner.
-
-The room is a box of **3.20 m (X) × 4.90 m (Y) × 1.60 m (Z)** with the origin at anchor 0.
+The X and Y axes are marked on the ground with masking tape, by the anchor 0, while the Z axis is vertical, pointing up. 
+Anchor **0** marks the origin `(0, 0, 0)` on the ground below it; from there **X** runs along the short 3.2 m side, **Y** along the long 4.9 m side, and **Z** points up to 1.6 m. Anchors **0, 2, 5, 7** are mounted low, near the floor, and **1, 3, 4, 6** are mounted high, one at each corner.
 
 > **The exact stored coordinates are already in the system**, matching the [anchor configuration file](assets/config/loco_config.yaml). To see the real `(x, y, z)` for each anchor ID on your setup, open the Loco Positioning tab (Step 4.2) and click **Configure positions,**  every anchor's position is listed there. **You do not need to change them.** Use Configure positions to read the exact values if you want them for your flight code.
 
 
-Key things to take from this:
+Important details when using the system:
 
-- The **origin (0,0,0) is at anchor 0** (marked on the ground with masking tape); **+X** runs along the 3.20 m side, **+Y** along the 4.90 m side, **+Z** is up to 1.60 m.
 - The usable flight volume is **inside** this box. Keep every flight path within it, accuracy drops off outside the anchor box.
 - When you start the drone, you place it flat inside this volume pointing along **+X** (along the 3.20 m side).
 
@@ -70,9 +67,6 @@ Key things to take from this:
 2. Click **Scan** (top-left). Your drone appears in the drop-down, e.g. `radio://0/80/2M/E7E7E7E7E7`.
 3. Select it and click **Connect**. Live numbers in the flight-data area mean you're connected.
 
-> **If Scan finds nothing:** the battery is almost always low, charge it, make sure the M4 LED blinks, and unplug any USB cable (the drone must run on its battery).
-> 
-
 ### Step 4.2 — Open the Loco Positioning view
 
 1. In the top menu bar, click **View**.
@@ -80,9 +74,8 @@ Key things to take from this:
 3. Click **Loco Positioning Tab** (it gets a checkmark).
 4. A new **Loco Positioning** tab appears, click it.
 
----
 
-## 5. Verify it works (do not skip)
+### Step 4.3 Verify it works
 
 1. In the Loco Positioning tab, check the **anchor status boxes**: you want **eight green boxes**. Green = the drone hears that anchor. All red = the drone and anchors are in different modes. A few black/red = those anchors aren't heard (check power, line of sight to the master).
 2. Look at the **3D graph**: eight anchor points and a marker for the drone. Rotate by dragging, zoom with the scroll wheel.
@@ -189,9 +182,9 @@ if __name__ == '__main__':
 1. Place the drone flat, pointing **+X**, well **inside** the anchor box.
 2. Make sure the area is clear and everyone knows how to stop it.
 3. Run it:
-    
-    **Windows:** `python fly_square.py`**Ubuntu:** `python3 fly_square.py`
-    
+```python
+python fly_square.py
+```
 
 The drone connects, settles its position, takes off to 1 m, flies a 0.5 m square, returns near the start, and lands, on its own.
 
@@ -251,39 +244,7 @@ the anchors form, or the position estimate degrades.
 
 ---
 
-## 9. Every-flight routine (quick reference)
-
-Once set up, a flying session is just:
-
-1. Charge and insert a battery.
-2. Power on all 8 anchors.
-3. Power on the drone (wait for the blinking M4 LED).
-4. cfclient → **Scan** → **Connect**.
-5. **View → Tabs → Loco Positioning Tab**; confirm 8 green boxes and the marker follows the drone when you move it by hand.
-6. Click **Disconnect** in cfclient.
-7. Run your Python program.
-
----
-
----
-
-## 10. Troubleshooting
-
-| Problem | Likely cause | Fix |
-| --- | --- | --- |
-| Scan finds no drone | Battery low, or drone not fully on | Charge; confirm M4 LED blinks; unplug USB |
-| All 8 anchor boxes red | Drone and anchors in different modes | Re-check the anchors are all in TDoA2 |
-| A few anchor boxes red/black | Those anchors not heard | Check their power and clear line of sight to the master (anchor 0) |
-| Position marker in wrong place | Stored anchor positions or IDs off | Check the stored `(x,y,z)` per ID in Configure positions (Step 4.2); confirm each physical anchor matches its ID in the diagram (Section 3) |
-| Position noisy, worse near edges | Flying outside the anchor box | Keep the whole path inside the 8-anchor box |
-| Program can't connect | cfclient still holds the radio | Click **Disconnect** in cfclient first |
-| Drone flips on takeoff | Prop in wrong position, or not level at start, or extra tuning params added | Check props are correct/undamaged; start on a flat level surface; use the code exactly as given |
-| Drone drifts or won't hold height | Weak battery, or poor anchor geometry | Fresh battery; spread anchors in a proper box |
-| Loco tab greyed out | Loco deck not detected | Re-seat the deck and power-cycle the drone |
-
----
-
-## 11. Where to learn more
+## 9. Where to learn more
 
 - Bitcraze official documentation (the makers of the Crazyflie and Loco system).
 - The `cflib` Python examples, waypoint flights and multi-drone scripts.
