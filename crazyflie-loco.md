@@ -176,10 +176,7 @@ def configure_position_log(scf):
 
 
 def prepare_drone(scf):
-    """Reset the position estimate so the drone starts fresh and clean."""
-    scf.cf.param.set_value("kalman.resetEstimation", "1")
-    time.sleep(0.1)
-    scf.cf.param.set_value("kalman.resetEstimation", "0")
+    """Wait until the estimation is stable and configure logs."""
     wait_until_position_is_ready(scf)
     configure_position_log(scf)
     time.sleep(0.2)
@@ -191,7 +188,7 @@ def prepare_drone(scf):
 
 
 def fly_the_square(scf):
-    """Take off, fly a square, and land — all automatically."""
+    """Take off, fly a square, and land."""
     x0, y0, z0 = position
     x1 = x0 + SQUARE_SIDE
     y1 = y0 + SQUARE_SIDE
