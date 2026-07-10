@@ -246,6 +246,6 @@ the anchors form, or the position estimate degrades.
 
 ## 9. Where to learn more
 
-- Bitcraze official documentation (the makers of the Crazyflie and Loco system).
-- The `cflib` Python examples, waypoint flights and multi-drone scripts.
-- The Loco Positioning System documentation, TWR/TDoA details and anchor placement.
+- [Bitcraze official documentation](https://www.bitcraze.io/documentation/start/) (the makers of the Crazyflie and Loco system).
+- The [`cflib` Python examples](https://github.com/bitcraze/crazyflie-lib-python/tree/master/examples), waypoint flights and multi-drone scripts.
+- The [Loco Positioning System documentation](https://www.bitcraze.io/documentation/tutorials/getting-started-with-loco-positioning-system/), TWR/TDoA details and anchor placement.
