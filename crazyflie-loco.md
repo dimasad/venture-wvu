@@ -19,7 +19,7 @@ By the end of this tutorial you will:
 
 ---
 
-## 2 UWB Radio Localization
+## 2. UWB Radio Localization
 
 Small radio boxes called anchors are placed around the room at known, measured positions.
 The drone carries a small radio board, the Loco deck that listens to the anchors and determines out how far it is from each.
@@ -38,7 +38,7 @@ The Loco system has two working modes. **This tutorial uses TDoA2**, the mode bu
 
 One key rule for TDoA2: the drone should fly **inside the box formed by the anchors** (the "convex hull"). Accuracy drops quickly outside it, which is why 8 anchors in a box shape matter.
 
-## Systen layout (reference)
+## 3. System layout (reference)
 
 The 8 anchors are **already installed** in the room, you don't place or measure them. But you should understand the layout, because the drone flies inside the box they form, and the flight positions in the code are relative to this same coordinate frame.
 
@@ -46,7 +46,7 @@ The anchors sit at the **8 corners of the room-sized box**. Anchor **0** marks t
 
 The room is a box of 4.20 m (X) × 3.20 m (Y) × 1.60 m (Z)** with the origin at anchor 0.
 
-> **The exact stored coordinates are already in the system.** To see the real `(x, y, z)` for each anchor ID on your setup, open the Loco Positioning tab (Step 6.5) and click **Configure positions,**  every anchor's position is listed there. **You do not need to change them.** Use Configure positions to read the exact values if you want them for your flight code.
+> **The exact stored coordinates are already in the system.** To see the real `(x, y, z)` for each anchor ID on your setup, open the Loco Positioning tab (Step 4.2) and click **Configure positions,**  every anchor's position is listed there. **You do not need to change them.** Use Configure positions to read the exact values if you want them for your flight code.
 
 
 Key things to take from this:
@@ -55,7 +55,9 @@ Key things to take from this:
 - The usable flight volume is **inside** this box. Keep every flight path within it, accuracy drops off outside the anchor box.
 - When you start the drone, you place it flat inside this volume pointing along **+X** (along the 3.20 m side).
 
-### Step 6.4 — Connect to the drone
+## 4. Set up
+
+### Step 4.1 — Connect to the drone
 
 1. Launch the client:
     
@@ -69,7 +71,7 @@ Key things to take from this:
 > **If Scan finds nothing:** the battery is almost always low, charge it, make sure the M4 LED blinks, and unplug any USB cable (the drone must run on its battery).
 > 
 
-### Step 6.5 — Open the Loco Positioning view
+### Step 4.2 — Open the Loco Positioning view
 
 1. In the top menu bar, click **View**.
 2. Go to **Tabs**.
@@ -78,26 +80,26 @@ Key things to take from this:
 
 ---
 
-## 7. Verify it works (do not skip)
+## 5. Verify it works (do not skip)
 
 1. In the Loco Positioning tab, check the **anchor status boxes**: you want **eight green boxes**. Green = the drone hears that anchor. All red = the drone and anchors are in different modes. A few black/red = those anchors aren't heard (check power, line of sight to the master).
 2. Look at the **3D graph**: eight anchor points and a marker for the drone. Rotate by dragging, zoom with the scroll wheel.
 3. **Pick up the drone and move it by hand.** The marker should follow,  move left, marker left; lift 1 m, marker rises 1 m.
-4. Only continue once the marker tracks smoothly and sits in the right place. If it jumps or sits wrong, re-check the anchor positions and IDs in Step 6.6.
+4. Only continue once the marker tracks smoothly and sits in the right place. If it jumps or sits wrong, re-check the anchor positions and IDs in Step 4.2.
 
 ---
 
-## 8. Run the autonomous mission
+## 6. Run the autonomous mission
 
-### Step 8.1 — Copy the drone's address
+### Step 6.1 — Copy the drone's address
 
 From the drop-down next to Scan/Connect, copy your URI (e.g. `radio://0/80/2M/E7E7E7E7E7`).
 
-### Step 8.2 — Disconnect cfclient
+### Step 6.2 — Disconnect cfclient
 
 Only one program can use the radio at a time. Click **Disconnect** in cfclient (leave the drone powered on).
 
-### Step 8.3 — Create the flight program
+### Step 6.3 — Create the flight program
 
 Save this as `fly_square.py`, and paste your URI into the `URI` line.
 
@@ -180,7 +182,7 @@ if __name__ == '__main__':
         print('All done.')
 ```
 
-### Step 8.4 — Run it
+### Step 6.4 — Run it
 
 1. Place the drone flat, pointing **+X**, well **inside** the anchor box.
 2. Make sure the area is clear and everyone knows how to stop it.
@@ -195,7 +197,7 @@ The drone connects, settles its position, takes off to 1 m, flies a 0.5 m square
 
 ---
 
-## 9. Understand the code
+## 7. Understand the code
 
 Read this so you can change the mission with confidence.
 
@@ -224,7 +226,7 @@ Each takes an optional `velocity=` in m/s. When the `with` block ends, the drone
 
 ---
 
-## 10. Your task: fly a different shape
+## 8. Your task: fly a different shape
 
 Now make the drone do something other than a square. Pick one (or invent your own):
 
@@ -247,7 +249,7 @@ the anchors form, or the position estimate degrades.
 
 ---
 
-## 11. Every-flight routine (quick reference)
+## 9. Every-flight routine (quick reference)
 
 Once set up, a flying session is just:
 
@@ -263,14 +265,14 @@ Once set up, a flying session is just:
 
 ---
 
-## 12. Troubleshooting
+## 10. Troubleshooting
 
 | Problem | Likely cause | Fix |
 | --- | --- | --- |
 | Scan finds no drone | Battery low, or drone not fully on | Charge; confirm M4 LED blinks; unplug USB |
 | All 8 anchor boxes red | Drone and anchors in different modes | Re-check the anchors are all in TDoA2 |
 | A few anchor boxes red/black | Those anchors not heard | Check their power and clear line of sight to the master (anchor 0) |
-| Position marker in wrong place | Stored anchor positions or IDs off | Check the stored `(x,y,z)` per ID in Configure positions (Step 6.6); confirm each physical anchor matches its ID in the diagram (Step 6.2) |
+| Position marker in wrong place | Stored anchor positions or IDs off | Check the stored `(x,y,z)` per ID in Configure positions (Step 4.2); confirm each physical anchor matches its ID in the diagram (Section 3) |
 | Position noisy, worse near edges | Flying outside the anchor box | Keep the whole path inside the 8-anchor box |
 | Program can't connect | cfclient still holds the radio | Click **Disconnect** in cfclient first |
 | Drone flips on takeoff | Prop in wrong position, or not level at start, or extra tuning params added | Check props are correct/undamaged; start on a flat level surface; use the code exactly as given |
@@ -279,7 +281,7 @@ Once set up, a flying session is just:
 
 ---
 
-## 13. Where to learn more
+## 11. Where to learn more
 
 - Bitcraze official documentation (the makers of the Crazyflie and Loco system).
 - The `cflib` Python examples, waypoint flights and multi-drone scripts.
