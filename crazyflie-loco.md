@@ -1,63 +1,36 @@
-# Flying a Drone by Itself Indoors: The Crazyflie 2.1 with the Loco Positioning System
-
-*A complete beginner's tutorial: download the software, connect to the drone, check the indoor positioning system, fly an autonomous mission, understand the code, and start experimenting.*
-
 ---
+title: Absolute Position Control of the Crazyflie with the Loco Positioning System
+---
+
+# Absolute Position Control of the Crazyflie with the Loco Positioning System
+
 
 ## 1. Introduction
 
-Most people have seen a drone flown by a person with a remote control. This tutorial is about something different: a drone that flies **by itself**. You will run a short program that tells a small drone to take off, follow a path, and land without anyone touching the controls.
-
-To fly itself, the drone must constantly answer one question: *“Where am I right now?”* Outdoors, drones use GPS. Indoors, GPS is too weak and imprecise, so we  build our own miniature indoor “GPS” out of radio beacons placed around the room. That system is the **Loco Positioning System (LPS)**.
+After positioning the drone using the Flow deck V2, a relative position sensor, we will now use the Loco Positioning System, an absolute position sensor, for moving the drone directly in world coordinates. The Loco Positioning System is a miniature indoor “GPS” out of ultra-wideband radio beacons placed around the room.
 
 By the end of this tutorial you will:
 
 - Understand how a drone knows its own position indoors.
-- Install the software and connect to the drone.
 - Understand how the installed Loco Positioning System works and check it.
 - Run a mission where the drone flies a shape completely on its own.
 - Understand the flight code line by line.
 - Modify the mission yourself (a task is proposed at the end).
 
-**Who this is for:** complete beginners. You need only a little comfort running commands on a computer. Every step is explained.
-
-**Works on:** both **Windows** and **Ubuntu (Linux)**. Where they differ, both are shown.
-
-> **This tutorial assumes the drone and the anchors already have their firmware installed and their IDs/modes configured** (a one-time job done when the equipment is first set up). Here we focus on what you actually repeat: setting up the room, connecting, and flying.
-> 
-
 ---
 
-## 2. The idea in plain words
+## 2 UWB Radio Localization
 
-- Small radio boxes called **anchors** are placed around the room at known, measured positions. Think of them as indoor "lighthouses."
-- The drone carries a small radio board (**the Loco deck**) that listens to the anchors and works out how far it is from each.
-- Knowing its distance to beacons whose positions are known, the drone computes its own `(x, y, z)` position,  the same principle GPS uses.
-- It does this on board, many times per second, so it always knows where it is.
-- A program on your laptop then just says *"take off, go here, now here, land,"* and the drone flies the path itself.
+Small radio boxes called anchors are placed around the room at known, measured positions.
+The drone carries a small radio board, the Loco deck that listens to the anchors and determines out how far it is from each.
+Knowing its distance to beacons whose positions are known, the drone computes its own `(x, y, z)` position using the same principle the GPS uses.
+It does this on board, many times per second, so it always knows where it is.
+A program on your laptop then just says "take off, go here, now here, land," and the drone can fly the path itself.
 
----
-
-## 3. How it works (the science)
-
-### 3.1 Measuring distance with radio
-
-The anchors and the drone use **Ultra-Wideband (UWB)** radio. Radio travels at the speed of light, a known constant, so by measuring how long a message takes to travel, the drone converts time into distance, accurate to roughly **10 cm**.
-
-### 3.2 From distances to a position
-
+The anchors and the drone use **Ultra-Wideband (UWB)** radio. Radio travels at the speed of light, a known constant, so by measuring how long a message takes to travel, the drone converts time into distance.
 Imagine being told "you are 3 m from this corner." You could be anywhere on a circle. Add "and 4 m from that corner" and the possibilities shrink. Add more beacons and add height, and only one 3D point fits. The drone does this with the eight anchors to pin down its exact position. 
 
-### 3.3 Cleaning up the answer (the Kalman filter)
-
 Real measurements are noisy. The drone runs a **Kalman filter** that blends the noisy distances with what it knows about its own motion to produce one smooth, reliable position estimate. This is built into the drone's firmware.
-
-### 3.4 Flying to a target
-
-Once the drone knows where it is, your program sends **setpoints,** targets like "be at (1.0, 1.0, 1.0)." The drone compares each target to where it is and drives its motors to get there. A sequence of setpoints becomes a flight path.
-
-### 3.5 The positioning mode: TDoA2
-
 The Loco system has two working modes. **This tutorial uses TDoA2**, the mode built for multiple anchors and (later) multiple drones:
 
 - **TDoA2 (Time Difference of Arrival):** the anchors continuously broadcast, synchronized to a "master" anchor, and the drone only *listens*. Because it only listens, the system can position many drones at once. It is designed for **8 anchors placed at the corners of a box**.
@@ -65,118 +38,22 @@ The Loco system has two working modes. **This tutorial uses TDoA2**, the mode bu
 
 One key rule for TDoA2: the drone should fly **inside the box formed by the anchors** (the "convex hull"). Accuracy drops quickly outside it, which is why 8 anchors in a box shape matter.
 
----
+## Systen layout (reference)
 
-## 4. Materials and what each part does
+The 8 anchors are **already installed** in the room, you don't place or measure them. But you should understand the layout, because the drone flies inside the box they form, and the flight positions in the code are relative to this same coordinate frame.
 
-### Drone
+The anchors sit at the **8 corners of the room-sized box**. Anchor **0** marks the origin `(0, 0, 0)` in one bottom corner; from there **X** runs along the short 3.2 m side, **Y** along the long 4.9 m side, and **Z** points up to 1.60 m. Anchors **0, 2, 5, 7** are near the floor and **1, 3, 4, 6** are up high, one at each corner.
 
-| Item | Qty | Role |
-| --- | --- | --- |
-| **Crazyflie 2.1** | 1 | The drone — a ~27 g quadcopter about 9 cm across. Does all flying and position math on board. ~6–7 min flight per charge. |
-| **Loco Positioning deck** | 1 | Clips onto the drone; the radio board that measures distance to the anchors. The drone's "eyes" for position. |
-| **LiPo batteries** | 1 | Power. Keep spares charged, a weak battery is the most common cause of trouble. Full ≈ 4.2 V. |
-| **Battery charger** | 1 | Recharges the batteries. |
-
-### Positioning system
-
-| Item | Qty | Role |
-| --- | --- | --- |
-| **Loco anchors (nodes)** | 8 | The radio "lighthouses," placed at the 8 corners of a box. TDoA2 is designed for 8, addressed 0–7. Anchor 0 is the timing "master." |
-| **Power supplies / USB cables** | 8 | Each anchor needs 5 V power. |
-| **Stands / mounts** | 8 | Hold anchors at the corners (4 low, 4 high). Must not move once set. |
-
-### Computer link
-
-| Item | Qty | Role |
-| --- | --- | --- |
-| **Crazyradio dongle** | 1 | USB stick that lets your laptop talk wireless to the drone. |
-| **Laptop** | 1 | Runs the software (Windows or Ubuntu, Python 3). |
-| **Data micro-USB cable** | 1 | For charging/config. Must be a *data* cable, not charge-only. |
-
-### Software (all free)
-
-| Software | Role |
-| --- | --- |
-| **cfclient** | Graphical app: connect to the drone, watch its position live, and check the anchor positions. |
-| **cflib** | Python library your flight programs use to command the drone. |
-| **Python 3** | The language the flight script is written in. |
-
-### Space
-
-A clear area of at least **4 × 4 m** floor and **2.5 m** height.
-
----
-
-## 5. Safety: read before every flight
-
-- **Keep away from the propellers.** They can cut skin. Keep fingers, hair, and cables clear.
-- **Know the three ways to STOP instantly:** press **`Ctrl + C`** in the terminal; click the red **Emergency Stop** in cfclient; or **pull the battery**.
-- **Use a charged battery.** Weak batteries fly badly and may not even connect.
-- **Start small.** Low height, short paths, stand back for first flights.
-- **After a crash,** power the drone off and on before flying again, and check the propellers are undamaged and correctly placed.
-
----
-
-## 6. Set up
-
-### Step 6.1 — Install the software
-
-Install Python 3 first. **Windows:** download from python.org and tick *"Add Python to PATH"* during install. **Ubuntu:** Python 3 is already installed.
-
-Open a terminal and install the Bitcraze tools.
-
-**Windows:**
-
-```bash
-pip install cfclient cflib
-```
-
-**Ubuntu:**
-
-```bash
-pip3 install cfclient cflib
-```
-
-**Ubuntu only:** allow access to the Crazyradio dongle (run once, then log out and back in):
-
-```bash
-sudo groupadd plugdev
-sudo usermod -a -G plugdev $USER
-sudo usermod -a -G dialout $USER
-sudo tee /etc/udev/rules.d/99-crazyradio.rules > /dev/null << 'EOF'
-SUBSYSTEM=="usb", ATTRS{idVendor}=="1915", ATTRS{idProduct}=="7777", MODE="0664", GROUP="plugdev"
-SUBSYSTEM=="usb", ATTRS{idVendor}=="1915", ATTRS{idProduct}=="7778", MODE="0664", GROUP="plugdev"
-EOF
-sudo udevadm control --reload-rules && sudo udevadm trigger
-```
-
-(Windows: the dongle works once plugged in. If not recognized, install its driver with a tool called Zadig.)
-
-### Step 6.2 — Know your anchor layout (reference)
-
-The 8 anchors are **already installed** in the room,you don't place or measure them. But you should understand the layout, because the drone flies inside the box they form, and the flight positions in the code are relative to this same coordinate frame.
-
-The anchors sit at the **8 corners of the room-sized box**. Anchor **0** marks the origin `(0, 0, 0)` in one bottom corner; from there **X** runs along the long 4.9 m side, **Y** along the 3.20 m side, and **Z** points up to 1.60 m. Anchors **0, 2, 5, 7** are near the floor and **1, 3, 4, 6** are up high, one at each corner.
-
-The room is a box of 4**.20 m (X) × 3.20 m (Y) × 1.60 m (Z)** with the origin at anchor 0.
+The room is a box of 4.20 m (X) × 3.20 m (Y) × 1.60 m (Z)** with the origin at anchor 0.
 
 > **The exact stored coordinates are already in the system.** To see the real `(x, y, z)` for each anchor ID on your setup, open the Loco Positioning tab (Step 6.5) and click **Configure positions,**  every anchor's position is listed there. **You do not need to change them.** Use Configure positions to read the exact values if you want them for your flight code.
-> 
+
 
 Key things to take from this:
 
 - The **origin (0,0,0) is at anchor 0**; **+X** runs along the 4.90 m side, **+Y** along the 3.20 m side, **+Z** is up to 1.60 m.
 - The usable flight volume is **inside** this box. Keep every flight path within it, accuracy drops off outside the anchor box.
 - When you start the drone, you place it flat inside this volume pointing along **+X** (along the 3.20 m side).
-
-### Step 6.3 — Attach the deck and power the drone
-
-1. Press the **Loco deck** onto the Crazyflie, aligning the pins.
-2. Insert a **charged battery**.
-3. Plug the **Crazyradio dongle** into your laptop.
-4. Place the drone flat in the **center** of the area, pointing **+X**.
-5. Power it on (single press). After the startup blinks, the green **M4 LED** blinking means it is on and broadcasting over radio.
 
 ### Step 6.4 — Connect to the drone
 
@@ -407,7 +284,3 @@ Once set up, a flying session is just:
 - Bitcraze official documentation (the makers of the Crazyflie and Loco system).
 - The `cflib` Python examples, waypoint flights and multi-drone scripts.
 - The Loco Positioning System documentation, TWR/TDoA details and anchor placement.
-
----
-
-*You built an indoor positioning system and used it to fly a drone with no pilot, the same core idea behind warehouse robots, research labs, and drone light-shows, etc.*
