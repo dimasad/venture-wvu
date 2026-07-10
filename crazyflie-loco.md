@@ -100,9 +100,7 @@ Save this as `fly_square.py`, and paste your URI into the `URI` line.
 
 ```python
 """
-fly_square.py
-Flies a Crazyflie 2.1 autonomously using the Loco Positioning System:
-takes off, flies a small square, and lands. No manual control.
+Flies a Crazyflie 2.1 autonomously using the Loco Positioning System
 """
 
 import time
@@ -111,14 +109,16 @@ from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
 from cflib.crazyflie.syncLogger import SyncLogger
 from cflib.crazyflie.log import LogConfig
 from cflib.positioning.motion_commander import MotionCommander
+from cflib.positioning.position_hl_commander import PositionHlCommander
 
 # ─── PASTE YOUR DRONE'S ADDRESS BETWEEN THE QUOTES ───
-URI = 'radio://0/80/2M/E7E7E7E7E7'
+URI = "radio://0/80/2M/E7E7E7E7A8"
 
 # Flight settings — keep them small and gentle
-TAKEOFF_HEIGHT = 1.0   # hover height, meters
-SQUARE_SIDE    = 1.0   # side length of the square, meters
-SPEED          = 0.3   # movement speed, meters/second
+TAKEOFF_HEIGHT = 0.6  # hover height, meters
+SQUARE_SIDE = 1.0  # side length of the square, meters
+SPEED = 0.5  # movement speed, meters/second
+
 
 def wait_until_position_is_ready(scf):
     """
@@ -126,55 +126,105 @@ def wait_until_position_is_ready(scf):
     We watch how much the estimate is 'wobbling' and only continue
     once it is steady, so the drone doesn't take off confused.
     """
-    print('Waiting for the drone to work out where it is...')
-    log = LogConfig(name='variance', period_in_ms=100)
-    log.add_variable('kalman.varPX', 'float')
-    log.add_variable('kalman.varPY', 'float')
-    log.add_variable('kalman.varPZ', 'float')
+    print("Waiting for the drone to work out where it is...")
+    log = LogConfig(name="variance", period_in_ms=100)
+    log.add_variable("kalman.varPX", "float")
+    log.add_variable("kalman.varPY", "float")
+    log.add_variable("kalman.varPZ", "float")
 
-    recent = {'x': [1000] * 10, 'y': [1000] * 10, 'z': [1000] * 10}
+    recent = {"x": [1000] * 10, "y": [1000] * 10, "z": [1000] * 10}
     steady_enough = 0.001
 
     with SyncLogger(scf, log) as logger:
         for _, data, _ in logger:
-            recent['x'].append(data['kalman.varPX']); recent['x'].pop(0)
-            recent['y'].append(data['kalman.varPY']); recent['y'].pop(0)
-            recent['z'].append(data['kalman.varPZ']); recent['z'].pop(0)
+            recent["x"].append(data["kalman.varPX"])
+            recent["x"].pop(0)
+            recent["y"].append(data["kalman.varPY"])
+            recent["y"].pop(0)
+            recent["z"].append(data["kalman.varPZ"])
+            recent["z"].pop(0)
             wobble = max(max(v) - min(v) for v in recent.values())
             if wobble < steady_enough:
-                print('Position is steady. Ready to fly!')
+                print("Position is steady. Ready to fly!")
                 break
+
+
+def position_callback(timestamp, data, logconf):
+    """Code run each time a new position log data arrives."""
+    # Retrieve position from log data
+    x = data["kalman.stateX"]
+    y = data["kalman.stateY"]
+    z = data["kalman.stateZ"]
+
+    # Update global position variable
+    global position
+    position = x, y, z
+
+    # Display on the terminal
+    print("current position: ", position)
+
+
+def configure_position_log(scf):
+    log_conf = LogConfig(name="Position", period_in_ms=100)
+    log_conf.add_variable("kalman.stateX", "float")
+    log_conf.add_variable("kalman.stateY", "float")
+    log_conf.add_variable("kalman.stateZ", "float")
+
+    scf.cf.log.add_config(log_conf)
+    log_conf.data_received_cb.add_callback(position_callback)
+    log_conf.start()
+
 
 def prepare_drone(scf):
     """Reset the position estimate so the drone starts fresh and clean."""
-    scf.cf.param.set_value('kalman.resetEstimation', '1')
+    scf.cf.param.set_value("kalman.resetEstimation", "1")
     time.sleep(0.1)
-    scf.cf.param.set_value('kalman.resetEstimation', '0')
+    scf.cf.param.set_value("kalman.resetEstimation", "0")
     wait_until_position_is_ready(scf)
+    configure_position_log()
+    time.sleep(0.2)
+    print("Waiting to get the current position")
+    while position is None:
+        time.sleep(0.5)
+        print(".", end=None)
+    print()
+
 
 def fly_the_square(scf):
     """Take off, fly a square, and land — all automatically."""
+    x0, y0, z0 = position
+    x1 = x0 + SQUARE_SIDE
+    y1 = y0 + SQUARE_SIDE
     # MotionCommander takes off when it starts and lands when it ends.
-    with MotionCommander(scf, default_height=TAKEOFF_HEIGHT) as drone:
-        print('Taking off...')
-        time.sleep(4)                        # hover a moment to steady
+    with PositionHlCommander(scf, default_height=TAKEOFF_HEIGHT) as pc:
+        print("Taking off...")
+        time.sleep(4)  # hover a moment to steady
 
-        print('Flying the square...')
-        drone.forward(SQUARE_SIDE, velocity=SPEED)
-        drone.left(SQUARE_SIDE,    velocity=SPEED)
-        drone.back(SQUARE_SIDE,    velocity=SPEED)
-        drone.right(SQUARE_SIDE,   velocity=SPEED)
+        print("Moving toward X+")
+        pc.go_to(x=x1, y=y0, velocity=SPEED)
 
+        print("Moving toward Y+")
+        pc.go_to(x=x1, y=y1, velocity=SPEED)
+
+        print("Moving toward X-")
+        pc.go_to(x=x0, y=y1, velocity=SPEED)
+
+        print("Moving toward Y-")
+        pc.go_to(x=x0, y=y0, velocity=SPEED)
+
+        print("Hovering around start.")
+        
         time.sleep(1)
-        print('Landing...')                  # lands automatically on exit
+        print("Landing...")  # lands automatically on exit
 
-if __name__ == '__main__':
-    cflib.crtp.init_drivers()                # get the radio ready
-    print('Connecting to the drone...')
-    with SyncCrazyflie(URI) as scf:          # connect
-        prepare_drone(scf)                   # confirm it knows where it is
-        fly_the_square(scf)                  # fly!
-        print('All done.')
+
+if __name__ == "__main__":
+    cflib.crtp.init_drivers()  # get the radio ready
+    print("Connecting to the drone...")
+    with SyncCrazyflie(URI) as scf:  # connect
+        prepare_drone(scf)  # confirm it knows where it is
+        fly_the_square(scf)  # fly!
+        print("All done.")
 ```
 
 ### Step 6.4 — Run it
