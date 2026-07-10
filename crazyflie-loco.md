@@ -112,7 +112,7 @@ from cflib.positioning.motion_commander import MotionCommander
 from cflib.positioning.position_hl_commander import PositionHlCommander
 
 # ─── PASTE YOUR DRONE'S ADDRESS BETWEEN THE QUOTES ───
-URI = "radio://0/80/2M/E7E7E7E7A8"
+URI = "radio://0/80/2M/E7E7E7E7E7"
 
 # Flight settings — keep them small and gentle
 TAKEOFF_HEIGHT = 0.6  # hover height, meters
