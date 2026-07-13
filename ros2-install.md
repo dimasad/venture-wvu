@@ -4,13 +4,13 @@ title: Installing ROS 2 Jazzy on WSL2
 
 # Installing ROS 2 Jazzy on WSL2
 
-ROS 2 **Jazzy Jalisco** targets **Ubuntu 24.04 (Noble)**. On Windows, the simplest way
+ROS 2 Jazzy Jalisco targets Ubuntu 24.04 (Noble). On Windows, the simplest way
 to get a working Ubuntu 24.04 environment is the Windows Subsystem for Linux (WSL2) —
 no dual-boot or separate virtual machine required.
 
 ## 1. Install WSL2 with Ubuntu 24.04
 
-1. Open **PowerShell as Administrator**.
+1. Open PowerShell as Administrator.
 2. Run:
 
    ```powershell
@@ -18,7 +18,7 @@ no dual-boot or separate virtual machine required.
    ```
 
 3. Restart Windows if prompted.
-4. Launch **Ubuntu 24.04** from the Start menu and create your Linux username and
+4. Launch Ubuntu 24.04 from the Start menu and create your Linux username and
    password when asked.
 
 Official instructions: <https://learn.microsoft.com/en-us/windows/wsl/install>
@@ -94,7 +94,7 @@ If the listener prints messages received from the talker, the install works.
 
 ## 9. GUI apps (RViz2, Gazebo)
 
-Recent versions of WSL2 include **WSLg**, which lets Linux GUI applications (RViz2,
+Recent versions of WSL2 include WSLg, which lets Linux GUI applications (RViz2,
 Gazebo, `rqt`, etc.) display directly on the Windows desktop with no extra setup.
 If a GUI window fails to appear, make sure WSL is fully up to date:
 
