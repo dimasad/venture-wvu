@@ -5,17 +5,17 @@ title: Installing ROS 2 Jazzy on macOS with Docker
 # Installing ROS 2 Jazzy on macOS with Docker
 
 ROS 2 Jazzy does not provide native macOS packages. The simplest way to get a working
-ROS 2 Jazzy environment on a Mac is to run it inside a container with **Docker
-Desktop**, using the official ROS Docker image.
+ROS 2 Jazzy environment on a Mac is to run it inside a container with Docker
+Desktop, using the official ROS Docker image.
 
 ## 1. Install Docker Desktop
 
 1. Download Docker Desktop for Mac:
    - Apple Silicon (M1/M2/M3/M4): <https://desktop.docker.com/mac/main/arm64/Docker.dmg>
    - Intel: <https://desktop.docker.com/mac/main/amd64/Docker.dmg>
-2. Open the downloaded `Docker.dmg` and drag **Docker** into the **Applications**
+2. Open the downloaded `Docker.dmg` and drag Docker into the Applications
    folder.
-3. Launch **Docker** from Applications and complete the first-run setup (you can skip
+3. Launch Docker from Applications and complete the first-run setup (you can skip
    creating a Docker account if not needed).
 4. Verify the install in a terminal:
 
@@ -54,7 +54,7 @@ docker start -ai ros2_jazzy
 
 ## 4. Test the install
 
-With the container from step 3 running, open a **second terminal** on the Mac and
+With the container from step 3 running, open a second terminal on the Mac and
 attach a second shell to the same container:
 
 ```bash
