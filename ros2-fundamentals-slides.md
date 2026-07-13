@@ -54,7 +54,7 @@ Venture into WVU — Space Robotics
 
 - **Morning (this session, ~2h):** lecture — what ROS 2 is, and the concepts every ROS 2 system is built from.
 - **Afternoon (~2h):** hands-on — explore these concepts yourself, individually, in simulation.
-- **Later this program:** write your own nodes, then deploy **Nav2** on a real robot.
+- **Later this program:** write your own nodes, then deploy Nav2 to a real robot.
 
 Everything today runs in simulation, inside a WSL2 Ubuntu 24.04 environment or Docker.
 
@@ -62,32 +62,53 @@ Everything today runs in simulation, inside a WSL2 Ubuntu 24.04 environment or D
 
 ## Agenda
 
-1. What is ROS 2? Use cases, the "ROS graph"
-2. **Nodes**
-3. **Messages / Interfaces**
-4. **Topics**
-5. **Services**
-6. **Actions**
-7. **Parameters**
-8. **TF2** (coordinate frames)
-9. **Launch**
-10. **Packages**, **Workspaces**, **Distributions**
+1. What is ROS 2?
+2. Nodes
+3. Messages / Interfaces
+4. Topics
+5. Services
+6. Actions
+7. Parameters
+8. TF2 (coordinate frames)
+9. Launch
+10. Packages, Workspaces, Distributions
 
 We'll pause after almost every concept to run it live in a terminal.
 
 ---
 
-## Before we start: sanity check
+## Before we start: validate setup
 
-Open a terminal in your WSL2 Ubuntu 24.04 environment and run:
+Open a terminal in your WSL2 Ubuntu 24.04 or Docker and run:
 
 ```bash
-printenv ROS_DISTRO     # should print: jazzy
-ros2 doctor             # checks your install for common problems
+printenv ROS_DISTRO        # should print: jazzy
+ros2 doctor                # checks your install for common problems
 ```
 
 > **Try it:** if `ROS_DISTRO` is empty, you likely forgot to source ROS 2 —
 > see step 6 of the install guide: `source /opt/ros/jazzy/setup.bash`.
 
 We'll use **turtlesim**, a tiny 2D simulator that ships with `ros-jazzy-desktop`,
-for almost every live demo today. No Gazebo, no GPU — it runs fine in WSL2.
+for almost every live demo today.
+
+---
+
+## ROS: Robot Operating System
+
+
+> The Robot Operating System (ROS) is a set of software libraries and tools that help you build robot applications. 
+
+The official docs describe ROS as an **open-source ecosystem** for robot software, with three pieces:
+
+| Piece | What it gives you |
+|---|---|
+| **Framework** | messaging, interfaces, and multi-language client libraries for talking between processes |
+| **Tools** | build, test, visualize, record/replay (`colcon`, `rviz2`, `ros2 bag`, ...) |
+| **Capabilities** | robot drivers, algorithms and packages for navigation, manipulation, perception, ... |
+
+📖 [`docs.ros.org/en/jazzy/About-ROS.html`](https://docs.ros.org/en/jazzy/About-ROS.html)
+
+---
+
+## Why Use ROS?
