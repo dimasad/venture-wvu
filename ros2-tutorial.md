@@ -328,15 +328,15 @@ ros2 run teleop_twist_keyboard teleop_twist_keyboard
 
 Drive the robot slowly through the environment, covering as much open space as you can and revisiting a few areas from different directions. Watch RViz2: the occupancy grid fills in live as the robot's lidar sees more of the world. Keep driving until the map covers the whole environment with clean, closed walls, then stop with Ctrl+C.
 
-### 8.8 Save the map from the CLI
+### 8.8 Save the map using the CLI
 
 The map SLAM Toolbox is building only exists in memory until you save it to disk. Do that with a single CLI command, in a new terminal:
 
 ```bash
-ros2 run nav2_map_server map_saver_cli -f ~/my_map
+ros2 service call /slam_toolbox/save_map slam_toolbox/srv/SaveMap "{name: {data: '~/my_map'}}"
 ```
 
-This calls a service on the running map server, the same request/response pattern behind `/clear` and `/spawn` this morning, just wrapped in a convenient command-line tool instead of `ros2 service call`. It writes `~/my_map.yaml` and `~/my_map.pgm`. Check that both files exist:
+This calls a service on the running map server, the same request/response pattern behind `/clear` and `/spawn` this morning. It writes `~/my_map.yaml` and `~/my_map.pgm`. Check that both files exist:
 
 ```bash
 ls -l ~/my_map.yaml ~/my_map.pgm
