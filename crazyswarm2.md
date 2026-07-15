@@ -60,10 +60,11 @@ usbipd attach --wsl --busid=<BUSID>
 Next, on Linux, install Nav2 and Crazyswarm2:
 
 ```bash
-sudo apt install -y ros-jazzy-navigation2 ros-jazzy-nav2-bringup
-sudo apt install -y ros-jazzy-teleop-twist-keyboard
-sudo apt install -y ros-jazzy-crazyflie*
+sudo apt install -y ros-humble-navigation2 ros-humble-nav2-bringup
+sudo apt install -y ros-humble-teleop-twist-keyboard
+sudo apt install -y ros-humble-crazyflie*
 sudo apt install -y python3-pip3
+sudo pip3 install --ignore-installed cflib rowan transforms3d
 ```
 
 Then run the following command to enable your Linux user to use the crazyflie usb devices.
@@ -84,156 +85,41 @@ sudo udevadm trigger
 
 ---
 
-## 3. Config file: copy/paste, change one line
+## 3. Config file
 
-Replace **everything** in `/opt/ros/jazzy/share/crazyflie/config/crazyflies.yaml`
-with the file below, changing the `uri` line.
+Save the file below as [`~/ros2_ws/crazyflies.yaml`](crazyswarm2/crazyflies.yaml), changing the `uri` line.
 
 ```yaml
-robots:
-  cf1:
-    enabled: true
-    uri: radio://0/80/2M/E7E7E7E701      # <<< CHANGE THIS TO YOUR DRONE
-    initial_position: [0.0, 0.0, 0.0]
-    type: cf21
-
-robot_types:
-  cf21:
-    motion_capture:
-      enabled: false
-      marker: default_single_marker
-      dynamics: default
-    big_quad: false
-    battery:
-      voltage_warning: 3.8
-      voltage_critical: 3.7
-
-all:
-  firmware_logging:
-    enabled: true
-    default_topics:
-      pose:
-        frequency: 10
-      odom:
-        frequency: 10
-  firmware_params:
-    commander:
-      enHighLevel: 1
-    stabilizer:
-      estimator: 2        # Kalman — required for the Flow deck
-      controller: 1       # PID — required for the Flow deck
+{% include_relative crazyswarm2/crazyflies.yaml %}
 ```
 
-**Why these lines:**
-
-- `pose` + `odom` logging → gives Nav2 the TF it needs to localize the drone.
-
-Rebuild after editing:
-
-```bash
-cd ~/ros2_ws && colcon build --symlink-install && source install/setup.bash
-```
+We do `pose` and `odom` logging to give Nav2 the TF it needs to localize the drone.
 
 ---
 
 ## 4. Map files
 
-Put the files [`map.pgm`](map.pgm), [`map.yaml`](map.yaml) and [`nav2_params.yaml`](nav2_params.yaml) in the folder `~/ros2_ws/maps/`. 
+Put the files [`map.pgm`](crazyswarm2/map.pgm), 
+[`map.yaml`](crazyswarm2/map.yaml), and 
+[`nav2_params.yaml`](crazyswarm2/nav2_params.yaml) in the folder 
+`~/ros2_ws/`.
 
 The file `map.pgm` is an image where each pixel value determines if a cell is occupied or free, while `map.yaml` has the map geometry and metadata, as shown belo. The `origin` is the real-world coordinate of the image's bottom-left pixel:
 
 ```yaml
-image: map.pgm
-resolution: 0.05
-origin: [0.0, 0.0, 0.0]
-negate: 0
-occupied_thresh: 0.65
-free_thresh: 0.196
+{% include_relative crazyswarm2/map.yaml %}
 ```
 
 ---
 
 ## 5. Launch file
 
-Create `~/ros2_ws/nav2_flow_launch.py`:
+Create [`~/ros2_ws/nav2_flow_launch.py`](crazyswarm2/nav2_flow_launch.py):
 
 ```python
-import os
-from ament_index_python.packages import get_package_share_directory
-from launch import LaunchDescription
-from launch.actions import IncludeLaunchDescription
-from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch_ros.actions import Node
-
-MAP = os.path.expanduser('~/ros2_ws/maps/map.yaml')
-PARAMS = os.path.expanduser('~/ros2_ws/maps/nav2_params.yaml')
-
-# ===================================================================
-#  WHERE YOU PUT THE DRONE ON THE MAP  (metres, map coordinates)
-#  Must be FREE SPACE - not inside an obstacle, not on a wall.
-#  Arena 3.0 x 6.0.
-# ===================================================================
-START_X = '0.75'
-START_Y = '0.75'
-START_YAW = '0.0'      # drone must point along +X
-# ===================================================================
-
-def generate_launch_description():
-    nav2 = get_package_share_directory('nav2_bringup')
-
-    return LaunchDescription([
-
-        # 1. Crazyflie server. With the Flow deck it publishes: cf1/odom -> cf1
-        IncludeLaunchDescription(
-            PythonLaunchDescriptionSource(
-                os.path.join(get_package_share_directory('crazyflie'),
-                             'launch', 'launch.py')),
-            launch_arguments={'gui': 'false',
-                              'teleop': 'false',
-                              'mocap': 'false'}.items()),
-
-        # 2. Static transform  map -> cf1/odom
-
-	Node(package='tf2_ros', executable='static_transform_publisher',
-		     name='map_to_odom',
-		     arguments=[START_X, START_Y, '0',
-		                START_YAW, '0', '0',
-		                'map', 'world'],          # <-- 'world', not 'cf1/odom'
-		     output='screen'),
-        # 3. Velocity mux. Takes off on the first /cmd_vel message.
-        Node(package='crazyflie', executable='vel_mux.py',
-             name='vel_mux', output='screen',
-             parameters=[{'hover_height': 0.5},
-                         {'incoming_twist_topic': '/cmd_vel'},
-                         {'robot_prefix': '/cf1'}]),
-
-        # 4. Map server
-        Node(package='nav2_map_server', executable='map_server',
-             name='map_server', output='screen',
-             parameters=[{'yaml_filename': MAP},
-                         {'use_sim_time': False}]),
-
-        Node(package='nav2_lifecycle_manager', executable='lifecycle_manager',
-             name='lifecycle_manager_map', output='screen',
-             parameters=[{'use_sim_time': False},
-                         {'autostart': True},
-                         {'node_names': ['map_server']}]),
-
-        # 5. Nav2 navigation only. No AMCL.
-        IncludeLaunchDescription(
-            PythonLaunchDescriptionSource(
-                os.path.join(nav2, 'launch', 'navigation_launch.py')),
-            launch_arguments={'params_file': PARAMS,
-                              'use_sim_time': 'False'}.items()),
-
-        # 6. RViz
-        Node(package='rviz2', executable='rviz2', name='rviz2',
-             arguments=['-d', os.path.join(nav2, 'rviz',
-                                           'nav2_default_view.rviz')],
-             output='screen'),
-    ])
-
+{% include_relative crazyswarm2/nav2_flow_launch.py %}
 ```
+
 ---
 
 ## 6. Part 0: Fly with teleop
@@ -245,14 +131,13 @@ Before using Nav2, confirm the drone flies under manual control. This verifies t
 **Terminal 1 — launch:**
 
 ```bash
-ros2 launch nav2_flow_launch.py
+ros2 launch ~/ros2_ws/nav2_flow_launch.py
 ```
 
 **Terminal 2 — teleop:**
 
 ```bash
-source ~/ros2_ws/install/setup.bash
-ros2 run teleop_twist_keyboard teleop_twist_keyboard --ros-args --remap cmd_vel:=/cmd_vel
+ros2 run teleop_twist_keyboard teleop_twist_keyboard
 ```
 
 **Steps:**
@@ -268,7 +153,6 @@ If this works, the flight chain is good. Move on to Nav2.
 **Pre-flight:** **close cfclient** → fresh battery → drone placed at `(START_X, START_Y)` pointing +X → Crazyradio in.
 
 ```bash
-source ~/ros2_ws/install/setup.bash
 ros2 launch nav2_flow_launch.py
 ```
 
@@ -386,7 +270,7 @@ if __name__ == '__main__':
 In a new terminal Ros2 source and run it **while the Nav2 launch is still up**.
 
 ```bash
-python3 nav_mission.py
+python3 ~/ros2_ws/nav_mission.py
 ```
 
 **What just happened:** you sent a goal to Nav2's `navigate_to_pose` action. Nav2 planned the path, avoided the mapped obstacles, and drove the drone there.
@@ -401,12 +285,11 @@ Add waypoints to `WAYPOINTS` so the drone visits 4 points in sequence. Place the
 
 ### Task 2: Complete the missing pieces
 
-The script below is **incomplete**. Copy and paste in a python file (Save as `~/ros2_ws/src/crazyswarm2/crazyflie_examples/crazyflie_examples/nav_mission_task.py`) Fill in the `TODO's` .
+The script below is **incomplete**. Copy and paste in a python file (Save as `~/ros2_ws/nav_mission.py`) Fill in the `TODO's` .
 
 ```python
-#!/usr/bin/env python3
 """
-patrol.py — SOLUTION. Fly a patrol route, report progress, handle failures, land.
+nav_mission.py: Fly a patrol route, report progress, handle failures, land.
 """
 import time
 import rclpy
@@ -439,7 +322,6 @@ class Patrol(Node):
         goal.pose.header.stamp = self.get_clock().now().to_msg()
         #############################################################
         # TODO 2 (DONE): set the goal position from x and y
-        
         #############################################################
         goal.pose.pose.orientation.w = 1.0
         return goal
@@ -529,14 +411,14 @@ Set a waypoint **inside** a taped obstacle. What does Nav2 do? Why? Make your co
 
 ```bash
 # Launch (single terminal)
-ros2 launch nav2_flow_launch.py
+ros2 launch ~/ros2_ws/nav2_flow_launch.py
 
 # ALWAYS verify before flying:
 ros2 lifecycle get /bt_navigator      # must be: active
 ros2 run tf2_ros tf2_echo map cf1     # must print a translation
 
 # Python mission (launch must be running)
-python3 src/crazyswarm2/crazyflie_examples/crazyflie_examples/nav_mission.py
+python3 ~/ros2_ws/nav_mission.py
 
 # Teleop (take off / land)
 ros2 run teleop_twist_keyboard teleop_twist_keyboard --ros-args --remap cmd_vel:=/cmd_vel
