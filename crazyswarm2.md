@@ -63,6 +63,23 @@ Next, on Linux, install Nav2 and Crazyswarm2:
 sudo apt install -y ros-jazzy-navigation2 ros-jazzy-nav2-bringup
 sudo apt install -y ros-jazzy-teleop-twist-keyboard
 sudo apt install -y ros-jazzy-crazyflie*
+sudo apt install -y python3-pip3
+```
+
+Then run the following command to enable your Linux user to use the crazyflie usb devices.
+
+```bash
+sudo adduser $USER plugdev
+cat <<EOF | sudo tee /etc/udev/rules.d/99-bitcraze.rules > /dev/null
+# Crazyradio (normal operation)
+SUBSYSTEM=="usb", ATTRS{idVendor}=="1915", ATTRS{idProduct}=="7777", MODE="0664", GROUP="plugdev"
+# Bootloader
+SUBSYSTEM=="usb", ATTRS{idVendor}=="1915", ATTRS{idProduct}=="0101", MODE="0664", GROUP="plugdev"
+# Crazyflie (over USB)
+SUBSYSTEM=="usb", ATTRS{idVendor}=="0483", ATTRS{idProduct}=="5740", MODE="0664", GROUP="plugdev"
+EOF
+sudo udevadm control --reload-rules
+sudo udevadm trigger
 ```
 
 ---
@@ -184,7 +201,7 @@ def generate_launch_description():
 		                'map', 'world'],          # <-- 'world', not 'cf1/odom'
 		     output='screen'),
         # 3. Velocity mux. Takes off on the first /cmd_vel message.
-        Node(package='crazyflie_examples', executable='vel_mux',
+        Node(package='crazyflie', executable='vel_mux.py',
              name='vel_mux', output='screen',
              parameters=[{'hover_height': 0.5},
                          {'incoming_twist_topic': '/cmd_vel'},
