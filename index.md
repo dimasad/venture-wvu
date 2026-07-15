@@ -14,6 +14,7 @@ Hands-on tutorials and presentations for Venture into WVU: Space Robotics.
 - [Installing ROS 2 Jazzy on WSL2](ros2-install): Instructions for preparing your machine for the ROS2 workshop, for Windows users.
 - [Installing ROS 2 Jazzy on macOS with Docker](ros2-mac): Set up a ROS 2 Jazzy environment on a Mac using Docker Desktop and the official ROS image.
 - [ROS2 Tutorial](ros2-tutorial): Self-paced activity for writing ROS nodes and using Nav2 interactivelly, with a simulated robot.
+- [Crazyswarm2](crazyswarm2): Controlling the Crazyflie drone with ROS.
 
 ## Presentations
 - [Introduction to ROS 2](ros2-fundamentals-slides.pdf): Overview & Fundamental Concepts.
