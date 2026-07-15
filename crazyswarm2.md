@@ -46,7 +46,7 @@ On a PowerShell running as administrator, run
 
 ```
 winget install dorssel.usbipd-win
-usbipd --list
+usbipd list
 ```
 
 Find the BUSID associated with the CrazyRadio, for example 1-5. 
