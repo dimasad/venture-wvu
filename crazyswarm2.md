@@ -421,6 +421,6 @@ ros2 run tf2_ros tf2_echo map cf1     # must print a translation
 python3 ~/ros2_ws/nav_mission.py
 
 # Teleop (take off / land)
-ros2 run teleop_twist_keyboard teleop_twist_keyboard --ros-args --remap cmd_vel:=/cmd_vel
+ros2 run teleop_twist_keyboard teleop_twist_keyboard
 #   t = take off, b = land
 ```
