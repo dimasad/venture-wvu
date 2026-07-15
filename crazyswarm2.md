@@ -41,24 +41,36 @@ What do you need?
 
 ## 2. Requirements
 
-- Ubuntu + ROS 2, Crazyswarm2 built and working
-- Crazyflie 2.1 + **Flow deck v2**
-- A **textured floor** (carpet, patterned). The Flow deck is a downward camera.
-- Map files provided by your instructor: `map.pgm` + `map.yaml`
+On Windows, we must share the USB device with the WSL2 Linux subsystem. 
+On a PowerShell running as administrator, run
 
-Install Nav2:
+```
+winget install dorssel.usbipd-win
+usbipd --list
+```
+
+Find the BUSID associated with the CrazyRadio, for example 1-5. 
+Use this as <BUSID> in the command below to attach it to WSL.
+
+```
+usbipd bind --busid=<BUSID>
+usbipd attach --wsl --busid=<BUSID>
+```
+
+Next, on Linux, install Nav2 and Crazyswarm2:
 
 ```bash
 sudo apt install -y ros-jazzy-navigation2 ros-jazzy-nav2-bringup
 sudo apt install -y ros-jazzy-teleop-twist-keyboard
+sudo apt install -y ros-jazzy-crazyflie*
 ```
 
 ---
 
 ## 3. Config file: copy/paste, change one line
 
-Replace **everything** in `~/ros2_ws/src/crazyswarm2/crazyflie/config/crazyflies.yaml`
-with this. **Change only the `uri` line.**
+Replace **everything** in `/opt/ros/jazzy/share/crazyflie/config/crazyflies.yaml`
+with the file below, changing the `uri` line.
 
 ```yaml
 robots:
@@ -109,14 +121,9 @@ cd ~/ros2_ws && colcon build --symlink-install && source install/setup.bash
 
 ## 4. Map files
 
-Put the instructor-provided files in `~/ros2_ws/maps/`   (You can create the folder maps):
+Put the files [`map.pgm`](map.pgm), [`map.yaml`](map.yaml) and [`nav2_params.yaml`](nav2_params.yaml) in the folder `~/ros2_ws/maps/`. 
 
-```
-~/ros2_ws/maps/map.pgm     # the image: black = obstacle, white = free
-~/ros2_ws/maps/map.yaml    # metadata: resolution, origin
-```
-
-`map.yaml` looks like this. The `origin` is the real-world coordinate of the image's **bottom-left pixel**:
+The file `map.pgm` is an image where each pixel value determines if a cell is occupied or free, while `map.yaml` has the map geometry and metadata, as shown belo. The `origin` is the real-world coordinate of the image's bottom-left pixel:
 
 ```yaml
 image: map.pgm
@@ -127,13 +134,11 @@ occupied_thresh: 0.65
 free_thresh: 0.196
 ```
 
-You also need `nav2_params.yaml` in the same folder (provided by your instructor).
-
 ---
 
 ## 5. Launch file
 
-Create `~/ros2_ws/src/crazyswarm2/crazyflie_examples/launch/nav2_flow_launch.py`:
+Create `~/ros2_ws/nav2_flow_launch.py`:
 
 ```python
 import os
@@ -144,7 +149,7 @@ from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch_ros.actions import Node
 
 MAP = os.path.expanduser('~/ros2_ws/maps/map.yaml')
-PARAMS = os.path.expanduser('~/ros2_ws/maps/nav2_params_flow.yaml')
+PARAMS = os.path.expanduser('~/ros2_ws/maps/nav2_params.yaml')
 
 # ===================================================================
 #  WHERE YOU PUT THE DRONE ON THE MAP  (metres, map coordinates)
@@ -166,8 +171,7 @@ def generate_launch_description():
             PythonLaunchDescriptionSource(
                 os.path.join(get_package_share_directory('crazyflie'),
                              'launch', 'launch.py')),
-            launch_arguments={'backend': 'cflib',
-                              'gui': 'false',
+            launch_arguments={'gui': 'false',
                               'teleop': 'false',
                               'mocap': 'false'}.items()),
 
@@ -213,15 +217,6 @@ def generate_launch_description():
     ])
 
 ```
-
-Build it (new launch files must be installed):
-
-```bash
-cd ~/ros2_ws
-colcon build --symlink-install --packages-select crazyflie_examples
-source install/setup.bash
-```
-
 ---
 
 ## 6. Part 0: Fly with teleop
@@ -233,8 +228,7 @@ Before using Nav2, confirm the drone flies under manual control. This verifies t
 **Terminal 1 — launch:**
 
 ```bash
-source ~/ros2_ws/install/setup.bash
-ros2 launch crazyflie_examples nav2_flow_launch.py
+ros2 launch nav2_flow_launch.py
 ```
 
 **Terminal 2 — teleop:**
@@ -258,7 +252,7 @@ If this works, the flight chain is good. Move on to Nav2.
 
 ```bash
 source ~/ros2_ws/install/setup.bash
-ros2 launch crazyflie_examples nav2_flow_launch.py
+ros2 launch nav2_flow_launch.py
 ```
 
 Verify before clicking anything:
@@ -285,9 +279,9 @@ In RViz:
 
 ## 7. Part 2: Send goals from Python
 
-RViz is for humans. Now do it in code.
+RViz is for sending goals interactivelly. In autonomous missions, we need to send the goals programatically.
 
-Save as `~/ros2_ws/src/crazyswarm2/crazyflie_examples/crazyflie_examples/nav_mission.py`:
+Save as `~/ros2_ws/nav_mission.py`:
 
 ```python
 #!/usr/bin/env python3
@@ -375,9 +369,7 @@ if __name__ == '__main__':
 In a new terminal Ros2 source and run it **while the Nav2 launch is still up**.
 
 ```bash
-cd ~/ros2_ws
-source ~/ros2_ws/install/setup.bash
-python3 src/crazyswarm2/crazyflie_examples/crazyflie_examples/nav_mission.py
+python3 nav_mission.py
 ```
 
 **What just happened:** you sent a goal to Nav2's `navigate_to_pose` action. Nav2 planned the path, avoided the mapped obstacles, and drove the drone there.
@@ -520,8 +512,7 @@ Set a waypoint **inside** a taped obstacle. What does Nav2 do? Why? Make your co
 
 ```bash
 # Launch (single terminal)
-source ~/ros2_ws/install/setup.bash
-ros2 launch crazyflie_examples nav2_flow_launch.py
+ros2 launch nav2_flow_launch.py
 
 # ALWAYS verify before flying:
 ros2 lifecycle get /bt_navigator      # must be: active
